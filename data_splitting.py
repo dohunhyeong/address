@@ -8,7 +8,7 @@ file_path = "./202201.csv"
 output_folder = "./202201"
 
 # 배치 크기 설정
-BATCH_SIZE = 10000
+BATCH_SIZE = 10068
 
 # 폴더 생성
 if not os.path.exists(output_folder):
