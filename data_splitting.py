@@ -2,13 +2,13 @@ import pandas as pd
 import os
 
 # 원본 데이터 파일 경로
-file_path = "./202201.csv"
+file_path = "./202202.csv"
 
 # 저장할 폴더 경로
-output_folder = "./202201"
+output_folder = "./202202"
 
 # 배치 크기 설정
-BATCH_SIZE = 10068
+BATCH_SIZE = 10000
 
 # 폴더 생성
 if not os.path.exists(output_folder):
