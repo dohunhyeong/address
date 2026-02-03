@@ -15,17 +15,27 @@ This is a Korean address data processing pipeline that uses the Juso API (https:
 
 2. Install dependencies (not managed by requirements.txt):
    ```bash
-   pip install pandas requests python-dotenv tqdm openpyxl
+   pip install pandas requests python-dotenv tqdm openpyxl notebook ipykernel
    ```
 
 ## Data Processing Workflow
 
-The pipeline follows a 4-stage process:
+The pipeline follows a 5-stage process:
+
+### Stage 0: Data Preparation
+**Script:** `preprocessing.ipynb` (Section 1: Excel to CSV conversion)
+
+Converts Excel files to CSV format for processing.
+
+```python
+# Reads Excel files and outputs CSV
+# Validates data structure and column names
+```
 
 ### Stage 1: Data Splitting
 **Script:** `data_splitting.py`
 
-Splits large CSV files into batches of 5000 records for parallel processing.
+Splits large CSV files into batches of 5000-10000 records for parallel processing (5000 or 10000 recommended to avoid network errors).
 
 ```bash
 python data_splitting.py
@@ -60,9 +70,18 @@ python sync_error.py
 # Output: ./202203/1/post_error_1/post_final_1.csv, ./202203/1/post_error_1/post_error_1.csv
 ```
 
-**Script:** `error_merge.py`
+**Script:** `preprocessing.ipynb` (Section 2: Error content correction)
 
-Merges successfully reprocessed addresses back into the main results.
+Merges successfully reprocessed addresses (post_final_*.csv) back into the main results (final_address_*.csv).
+
+```python
+# Appends post_final_{n}.csv to final_address_{n}.csv
+# Must be run for each batch processed
+```
+
+**Alternative Script:** `error_merge.py`
+
+Standalone script version for automated merging.
 
 ```bash
 python error_merge.py
@@ -71,17 +90,49 @@ python error_merge.py
 ```
 
 ### Stage 4: Final Merging
-**Script:** `merge.py`
+**Script:** `preprocessing.ipynb` (Section 3: File merging) or `merge.py`
 
 Merges all batch results into a single Excel file.
 
-```bash
-python merge.py
+```python
+# preprocessing.ipynb approach:
+# 1. Merges original batch CSV with final_address CSV (column-wise)
+# 2. Concatenates all merged batches (row-wise)
+# 3. Outputs final_merged_output.xlsx
+
+# merge.py approach (standalone):
+# python merge.py
 # Input: All ./202201/*/merged_*.csv files
 # Output: ./202201/final_merged_output.xlsx
 ```
 
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `preprocessing.ipynb` | Excel/CSV conversion, error correction merging, final data merging |
+| `data_splitting.py` | Splits large CSV into manageable batches |
+| `sync_address.py` | Main address API conversion |
+| `sync_error.py` | Reprocesses failed addresses |
+| `error_merge.py` | Alternative to preprocessing.ipynb Section 2 for merging corrections |
+| `merge.py` | Alternative to preprocessing.ipynb Section 3 for final merging |
+| `.env` | Stores ADDRESS_API_KEY |
+| `address_api_sync.log` | API operation logs |
+
 ## Key Architecture Notes
+
+### Workflow Options
+The pipeline offers two approaches:
+
+**Jupyter Notebook Approach** (Recommended for interactive use):
+- `preprocessing.ipynb` handles data preparation (Stage 0), error merging (Stage 3), and final merging (Stage 4)
+- Better for visualization and step-by-step verification
+
+**Script Approach** (Recommended for automation):
+- `error_merge.py` for Stage 3, `merge.py` for Stage 4
+- Better for automated batch processing
+
+Both approaches are functionally equivalent.
 
 ### File Structure Pattern
 ```
@@ -108,6 +159,22 @@ The Juso API returns:
 - `시/도` (Province/Metropolitan city)
 - `시/군/구` (City/County/District)
 - `읍/면/동` (Township/Town/Neighborhood)
+
+### Common Address Format Issues
+Addresses that fail API validation typically have:
+1. **Extra administrative codes** - "통/반" (district/subdivision) appended to address
+   - Example: "부산광역시 사상구 백양대로433번길 9 7통 4반"
+   - Fix: Remove "7통 4반" → "부산광역시 사상구 백양대로433번길 9"
+
+2. **Detailed addresses** - Building names, floor/unit numbers
+   - Example: "부산광역시 동구 홍곡남로 6 동신탕 3층"
+   - Fix: Remove "동신탕 3층" → "부산광역시 동구 홍곡남로 6"
+
+3. **Regex processing errors** - Unit numbers caught in road name
+   - Example: "부산광역시 해운대구 센텀3로 26 3009호"
+   - Fix: Remove "3009호" → "부산광역시 해운대구 센텀3로 26"
+
+4. **Deprecated addresses** - Verify using https://www.juso.go.kr with "폐지된 주소 정보 포함" option
 
 ### Logging
 All API operations log to `address_api_sync.log` with timestamps and error details.
