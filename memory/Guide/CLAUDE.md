@@ -317,7 +317,7 @@ print(f"Final merged Excel file saved at: {output_excel_path}")
 
 ---
 
-## 10. 폐지된 주소, 마지막까지도 변환이 되지 않은 주소 처리
+## 10. 폐지된 주소, 마지막까지도 변환이 되지 않은 주소 처리(사람이 개입하여 직접 처리해야하는 부분)
 
 시/도, 시/군/구, 읍/면/동 컬럼들을 확인하고 null 값이 있으면 해당 데이터의 `n_addr` 컬럼을 확인해서 올바른 도로명 주소로 바꾼 후 해당 주소를 [주소정보누리집](https://www.juso.go.kr/openIndexPage.do)에서 검색해서 알아내면 됩니다.
 
