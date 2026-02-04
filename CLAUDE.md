@@ -20,7 +20,7 @@ This is a Korean address data processing pipeline that uses the Juso API (https:
 
 ## Data Processing Workflow
 
-The pipeline follows a 5-stage process:
+The pipeline follows a 6-stage process:
 
 ### Stage 0: Data Preparation
 **Script:** `preprocessing.ipynb` (Section 1: Excel to CSV conversion)
@@ -58,10 +58,10 @@ python sync_address.py
 
 API calls use retry logic (3 attempts, 3-second delay) and log to `address_api_sync.log`.
 
-### Stage 3: Error Reprocessing
+### Stage 3: Error Reprocessing (1st Error Correction)
 **Script:** `sync_error.py`
 
-Reprocesses addresses that failed in Stage 2 (usually due to malformed addresses that need manual correction).
+Reprocesses addresses that failed in Stage 2. Before running, manually correct `error_address_*.csv` files by fixing malformed addresses (remove 통/반, detailed addresses, regex artifacts). This is the 1st of 2 error correction passes.
 
 ```bash
 python sync_error.py
@@ -105,6 +105,24 @@ Merges all batch results into a single Excel file.
 # Input: All ./202201/*/merged_*.csv files
 # Output: ./202201/final_merged_output.xlsx
 ```
+
+### Stage 5: Manual Review (2nd Error Correction)
+
+After the final merge, remaining NaN values in 시/도, 시/군/구, 읍/면/동 columns require manual human review. These are addresses that could not be resolved through the automated 1st error correction pass.
+
+**Common causes of remaining NaN values:**
+1. **Deprecated addresses** - Roads that have been renamed or abolished; not found by the API even after correction
+2. **Regex processing errors** - Non-standard patterns missed during 1st error correction
+3. **1st correction omissions** - Addresses overlooked during manual correction in Stage 3
+
+**Manual review process:**
+1. Open `final_merged_output.xlsx` and identify rows with NaN values in 시/도, 시/군/구, or 읍/면/동
+2. Check the `n_addr` column for the original address data
+3. Search on [주소정보누리집](https://www.juso.go.kr) with "폐지된 주소 정보 포함" checked
+4. Extract 시/도, 시/군/구, 읍/면/동 from the 지번주소 (lot-based address) result
+5. Manually enter the values into the Excel file
+
+This stage requires human judgment and cannot be automated, as the remaining failures involve deprecated addresses, data entry errors in the original dataset, or edge cases not covered by automated correction rules.
 
 ## Key Files
 
